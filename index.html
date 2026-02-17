@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#faf8ef">
+    <title>2048 - Telegram Mini-App</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">2048</div>
+            <div class="scores">
+                <div class="score-container">
+                    <div class="score-label">SCORE</div>
+                    <div class="score-value" id="score">0</div>
+                </div>
+                <div class="score-container best">
+                    <div class="score-label">BEST</div>
+                    <div class="score-value" id="best-score">0</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Game Instructions -->
+        <p class="instructions">
+            Swipe to move tiles. When two tiles with the same number touch, they merge into one!
+        </p>
+
+        <!-- Game Grid -->
+        <div class="grid-container">
+            <div class="grid-background">
+                <!-- Background cells -->
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+            </div>
+            <div class="grid-tiles" id="grid-tiles">
+                <!-- Dynamic tiles will be inserted here -->
+            </div>
+        </div>
+
+        <!-- New Game Button -->
+        <button class="new-game-btn" id="new-game-btn">New Game</button>
+
+        <!-- Game Over Modal -->
+        <div class="modal-overlay" id="game-over-modal">
+            <div class="modal-card">
+                <h2 class="modal-title">Game Over!</h2>
+                <div class="modal-score">
+                    <div class="modal-score-label">Your Score</div>
+                    <div class="modal-score-value" id="final-score">0</div>
+                </div>
+                <div class="modal-score">
+                    <div class="modal-score-label">Best Score</div>
+                    <div class="modal-score-value" id="modal-best-score">0</div>
+                </div>
+                <div class="modal-buttons">
+                    <button class="modal-btn primary" id="try-again-btn">Try Again</button>
+                    <button class="modal-btn secondary" id="share-score-btn">Share Score</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Victory Modal -->
+        <div class="modal-overlay victory" id="victory-modal">
+            <div class="modal-card">
+                <div class="victory-icon">🏆</div>
+                <h2 class="modal-title victory">You Win!</h2>
+                <p class="victory-message">You reached 2048!</p>
+                <div class="modal-score">
+                    <div class="modal-score-label">Your Score</div>
+                    <div class="modal-score-value" id="victory-score">0</div>
+                </div>
+                <div class="modal-buttons">
+                    <button class="modal-btn primary victory" id="keep-playing-btn">Keep Playing</button>
+                    <button class="modal-btn secondary" id="share-achievement-btn">Share Achievement</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="game.js"></script>
+    <script src="touch.js"></script>
+    <script src="telegram.js"></script>
+</body>
+</html>
