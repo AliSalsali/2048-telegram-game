@@ -1,4 +1,4 @@
-// 2048 Game Logic - Enhanced with Smooth Animations
+// 2048 Game Logic - Bug-Fixed Version
 
 class Game2048 {
     constructor() {
@@ -26,12 +26,16 @@ class Game2048 {
 
         // Clear DOM
         const gridTiles = document.getElementById('grid-tiles');
-        gridTiles.innerHTML = '';
+        if (gridTiles) {
+            gridTiles.innerHTML = '';
+        }
 
         // Spawn initial tiles
         this.spawnTile();
         this.spawnTile();
 
+        // FIX 1: Render the initial tiles immediately
+        this.renderGrid();
         this.updateDisplay();
     }
 
@@ -80,15 +84,17 @@ class Game2048 {
 
         this.animating = true;
 
-        // Clear merge/new flags
+        // Clear merge/new flags from ALL tiles before move
         this.tiles.forEach(tile => {
             tile.isNew = false;
             tile.isMerged = false;
         });
 
-        let moved = false;
-        const oldGrid = JSON.stringify(this.gridToValues());
+        // Save old grid state for comparison
+        const oldGrid = this.gridToValues();
 
+        // Perform the move
+        let moved = false;
         switch (direction) {
             case 'up':
                 moved = this.moveUp();
@@ -104,23 +110,24 @@ class Game2048 {
                 break;
         }
 
-        const newGrid = JSON.stringify(this.gridToValues());
-        moved = oldGrid !== newGrid;
+        // Check if anything actually moved
+        const newGrid = this.gridToValues();
+        const gridChanged = JSON.stringify(oldGrid) !== JSON.stringify(newGrid);
 
-        if (moved) {
-            // Render immediately to start movement animations
+        if (gridChanged && moved) {
+            // Render with movement
             this.renderGrid();
 
-            // Wait for slide animation to complete
+            // Wait for slide animation
             await this.sleep(150);
 
             // Clean up merged tiles
             this.cleanupMergedTiles();
 
-            // Spawn new tile
+            // FIX 2: Spawn ONLY ONE new tile after cleanup
             this.spawnTile();
 
-            // Render with new tile
+            // Render the new tile
             this.renderGrid();
 
             this.updateDisplay();
@@ -142,7 +149,7 @@ class Game2048 {
         }
 
         this.animating = false;
-        return moved;
+        return gridChanged && moved;
     }
 
     // Helper to get grid values for comparison
@@ -162,7 +169,8 @@ class Game2048 {
         const tilesToRemove = [];
 
         this.tiles.forEach((tile, id) => {
-            if (tile.isMerged && this.grid[tile.row][tile.col] !== tile) {
+            // Remove tiles that were merged but are no longer in the grid
+            if (tile.isMerged && this.grid[tile.row] && this.grid[tile.row][tile.col] !== tile) {
                 tilesToRemove.push(id);
             }
         });
@@ -176,7 +184,7 @@ class Game2048 {
         });
     }
 
-    // Movement logic for each direction
+    // Movement logic - LEFT
     moveLeft() {
         let moved = false;
 
@@ -184,24 +192,32 @@ class Game2048 {
             const tiles = this.grid[row].filter(tile => tile !== null);
             const newRow = Array(this.gridSize).fill(null);
             let targetCol = 0;
+            let i = 0;
 
-            for (let i = 0; i < tiles.length; i++) {
+            while (i < tiles.length) {
                 const currentTile = tiles[i];
 
-                if (i < tiles.length - 1 && currentTile.value === tiles[i + 1].value && !currentTile.isMerged && !tiles[i + 1].isMerged) {
-                    // Merge tiles
+                // Check if we can merge with next tile
+                if (i < tiles.length - 1 &&
+                    currentTile.value === tiles[i + 1].value &&
+                    !currentTile.isMerged &&
+                    !tiles[i + 1].isMerged) {
+
+                    // Merge: keep current tile, double its value
                     currentTile.value *= 2;
                     currentTile.isMerged = true;
-                    currentTile.row = row;
-                    currentTile.col = targetCol;
                     this.score += currentTile.value;
-                    newRow[targetCol] = currentTile;
 
-                    // Mark the second tile for removal
+                    // Mark second tile for removal
                     tiles[i + 1].isMerged = true;
 
+                    // Place merged tile
+                    currentTile.row = row;
+                    currentTile.col = targetCol;
+                    newRow[targetCol] = currentTile;
+
                     targetCol++;
-                    i++; // Skip next tile
+                    i += 2; // Skip both tiles
                     moved = true;
                 } else {
                     // Just move tile
@@ -212,6 +228,7 @@ class Game2048 {
                     currentTile.col = targetCol;
                     newRow[targetCol] = currentTile;
                     targetCol++;
+                    i++;
                 }
             }
 
@@ -221,6 +238,7 @@ class Game2048 {
         return moved;
     }
 
+    // Movement logic - RIGHT
     moveRight() {
         let moved = false;
 
@@ -228,22 +246,27 @@ class Game2048 {
             const tiles = this.grid[row].filter(tile => tile !== null).reverse();
             const newRow = Array(this.gridSize).fill(null);
             let targetCol = this.gridSize - 1;
+            let i = 0;
 
-            for (let i = 0; i < tiles.length; i++) {
+            while (i < tiles.length) {
                 const currentTile = tiles[i];
 
-                if (i < tiles.length - 1 && currentTile.value === tiles[i + 1].value && !currentTile.isMerged && !tiles[i + 1].isMerged) {
+                if (i < tiles.length - 1 &&
+                    currentTile.value === tiles[i + 1].value &&
+                    !currentTile.isMerged &&
+                    !tiles[i + 1].isMerged) {
+
                     currentTile.value *= 2;
                     currentTile.isMerged = true;
-                    currentTile.row = row;
-                    currentTile.col = targetCol;
                     this.score += currentTile.value;
-                    newRow[targetCol] = currentTile;
-
                     tiles[i + 1].isMerged = true;
 
+                    currentTile.row = row;
+                    currentTile.col = targetCol;
+                    newRow[targetCol] = currentTile;
+
                     targetCol--;
-                    i++;
+                    i += 2;
                     moved = true;
                 } else {
                     if (currentTile.row !== row || currentTile.col !== targetCol) {
@@ -253,6 +276,7 @@ class Game2048 {
                     currentTile.col = targetCol;
                     newRow[targetCol] = currentTile;
                     targetCol--;
+                    i++;
                 }
             }
 
@@ -262,6 +286,7 @@ class Game2048 {
         return moved;
     }
 
+    // Movement logic - UP
     moveUp() {
         let moved = false;
 
@@ -273,24 +298,28 @@ class Game2048 {
                 }
             }
 
-            const newColumn = Array(this.gridSize).fill(null);
             let targetRow = 0;
+            let i = 0;
 
-            for (let i = 0; i < tiles.length; i++) {
+            while (i < tiles.length) {
                 const currentTile = tiles[i];
 
-                if (i < tiles.length - 1 && currentTile.value === tiles[i + 1].value && !currentTile.isMerged && !tiles[i + 1].isMerged) {
+                if (i < tiles.length - 1 &&
+                    currentTile.value === tiles[i + 1].value &&
+                    !currentTile.isMerged &&
+                    !tiles[i + 1].isMerged) {
+
                     currentTile.value *= 2;
                     currentTile.isMerged = true;
-                    currentTile.row = targetRow;
-                    currentTile.col = col;
                     this.score += currentTile.value;
-                    newColumn[targetRow] = currentTile;
-
                     tiles[i + 1].isMerged = true;
 
+                    currentTile.row = targetRow;
+                    currentTile.col = col;
+                    this.grid[targetRow][col] = currentTile;
+
                     targetRow++;
-                    i++;
+                    i += 2;
                     moved = true;
                 } else {
                     if (currentTile.row !== targetRow || currentTile.col !== col) {
@@ -298,19 +327,22 @@ class Game2048 {
                     }
                     currentTile.row = targetRow;
                     currentTile.col = col;
-                    newColumn[targetRow] = currentTile;
+                    this.grid[targetRow][col] = currentTile;
                     targetRow++;
+                    i++;
                 }
             }
 
-            for (let row = 0; row < this.gridSize; row++) {
-                this.grid[row][col] = newColumn[row];
+            // Clear empty spaces
+            for (let row = targetRow; row < this.gridSize; row++) {
+                this.grid[row][col] = null;
             }
         }
 
         return moved;
     }
 
+    // Movement logic - DOWN
     moveDown() {
         let moved = false;
 
@@ -322,24 +354,28 @@ class Game2048 {
                 }
             }
 
-            const newColumn = Array(this.gridSize).fill(null);
             let targetRow = this.gridSize - 1;
+            let i = 0;
 
-            for (let i = 0; i < tiles.length; i++) {
+            while (i < tiles.length) {
                 const currentTile = tiles[i];
 
-                if (i < tiles.length - 1 && currentTile.value === tiles[i + 1].value && !currentTile.isMerged && !tiles[i + 1].isMerged) {
+                if (i < tiles.length - 1 &&
+                    currentTile.value === tiles[i + 1].value &&
+                    !currentTile.isMerged &&
+                    !tiles[i + 1].isMerged) {
+
                     currentTile.value *= 2;
                     currentTile.isMerged = true;
-                    currentTile.row = targetRow;
-                    currentTile.col = col;
                     this.score += currentTile.value;
-                    newColumn[targetRow] = currentTile;
-
                     tiles[i + 1].isMerged = true;
 
+                    currentTile.row = targetRow;
+                    currentTile.col = col;
+                    this.grid[targetRow][col] = currentTile;
+
                     targetRow--;
-                    i++;
+                    i += 2;
                     moved = true;
                 } else {
                     if (currentTile.row !== targetRow || currentTile.col !== col) {
@@ -347,13 +383,15 @@ class Game2048 {
                     }
                     currentTile.row = targetRow;
                     currentTile.col = col;
-                    newColumn[targetRow] = currentTile;
+                    this.grid[targetRow][col] = currentTile;
                     targetRow--;
+                    i++;
                 }
             }
 
-            for (let row = 0; row < this.gridSize; row++) {
-                this.grid[row][col] = newColumn[row];
+            // Clear empty spaces
+            for (let row = targetRow; row >= 0; row--) {
+                this.grid[row][col] = null;
             }
         }
 
@@ -424,43 +462,75 @@ class Game2048 {
     // Render the grid tiles with smooth animations
     renderGrid() {
         const gridTiles = document.getElementById('grid-tiles');
+        if (!gridTiles) return;
+
         const cellSize = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell-size')) || 70;
         const cellGap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell-gap')) || 12;
 
         // Update existing tiles and create new ones
         this.tiles.forEach((tile, id) => {
+            // Calculate position FIRST
+            const top = tile.row * (cellSize + cellGap);
+            const left = tile.col * (cellSize + cellGap);
+
             if (!tile.element) {
-                // Create new DOM element
+                // PROPER FIX: Create element with COMBINED transform (position + initial scale)
                 const element = document.createElement('div');
                 element.className = 'tile';
                 element.setAttribute('data-value', tile.value);
                 element.textContent = tile.value;
                 element.id = id;
 
+                // Critical: Set COMBINED transform with position AND initial animation state
+                // This prevents the tile from EVER appearing at (0,0)
+                if (tile.isNew) {
+                    // Start invisible and scaled down AT THE CORRECT POSITION
+                    element.style.transform = `translate(${left}px, ${top}px) scale(0) rotate(-5deg)`;
+                    element.style.opacity = '0';
+                } else if (tile.isMerged) {
+                    // Start at normal state for merge animation
+                    element.style.transform = `translate(${left}px, ${top}px)`;
+                } else {
+                    // Normal positioning for existing tiles
+                    element.style.transform = `translate(${left}px, ${top}px)`;
+                }
+
+                // Append to DOM - tile is now at correct position (not 0,0)
                 gridTiles.appendChild(element);
                 tile.element = element;
-            }
 
-            // Update tile properties
-            tile.element.setAttribute('data-value', tile.value);
-            tile.element.textContent = tile.value;
+                // Force reflow to ensure initial state is applied
+                void element.offsetHeight;
 
-            // Calculate position
-            const top = tile.row * (cellSize + cellGap);
-            const left = tile.col * (cellSize + cellGap);
+                // Now animate to final state
+                if (tile.isNew) {
+                    // Animate from scale(0) to scale(1) AT THE CORRECT POSITION
+                    requestAnimationFrame(() => {
+                        element.style.transition = 'transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 200ms ease-out';
+                        element.style.transform = `translate(${left}px, ${top}px) scale(1) rotate(0deg)`;
+                        element.style.opacity = '1';
+                    });
+                }
+            } else {
+                // Update existing tile position
+                tile.element.setAttribute('data-value', tile.value);
+                tile.element.textContent = tile.value;
 
-            // Use transform for GPU acceleration
-            tile.element.style.transform = `translate(${left}px, ${top}px)`;
+                // Update position (smooth slide for moved tiles)
+                tile.element.style.transform = `translate(${left}px, ${top}px)`;
 
-            // Remove old animation classes
-            tile.element.classList.remove('tile-new', 'tile-merged', 'tile-pop');
+                // Merge animation for existing tiles
+                if (tile.isMerged) {
+                    // Pulse animation
+                    tile.element.style.transition = 'transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+                    tile.element.style.transform = `translate(${left}px, ${top}px) scale(1.15)`;
 
-            // Add animation classes
-            if (tile.isNew) {
-                tile.element.classList.add('tile-new');
-            }
-            if (tile.isMerged) {
-                tile.element.classList.add('tile-pop');
+                    setTimeout(() => {
+                        if (tile.element) {
+                            tile.element.style.transform = `translate(${left}px, ${top}px) scale(1)`;
+                        }
+                    }, 125);
+                }
             }
         });
     }
